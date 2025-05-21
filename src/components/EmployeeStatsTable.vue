@@ -1,122 +1,125 @@
 <template>
   <div>
-    <v-card-title class="pb-2">
+    <v-card-title class="pb-2 d-flex align-center">
       <v-autocomplete
-        v-model="selectedEmployee"
+        v-model="selectedEmployees"
         :items="employeeItems"
         item-title="title"
         item-value="value"
-        label="Поиск по сотруднику"
-        placeholder="Введите имя сотрудника или выберите из списка"
+        label="Поиск по сотрудникам"
+        placeholder="Выберите одного или нескольких сотрудников"
         clearable
+        chips
+        multiple
         density="compact"
         hide-details
         variant="outlined"
         return-object
-        @update:model-value="filterByEmployee"
+        @update:model-value="filterByEmployees"
+        class="flex-grow-1"
       >
         <template v-slot:prepend-inner>
           <v-icon>mdi-account-search</v-icon>
         </template>
-        <template v-slot:append-inner v-if="selectedEmployee">
-          <v-icon color="error" @click="clearEmployeeFilter">mdi-close</v-icon>
-        </template>
       </v-autocomplete>
+
+      <v-btn
+        v-if="selectedEmployees.length > 1"
+        class="ml-2"
+        size="small"
+        variant="text"
+        density="compact"
+        @click="clearEmployeeFilter"
+      >
+        Очистить все
+      </v-btn>
     </v-card-title>
 
-    <v-chip
-      v-if="selectedEmployee"
-      color="primary"
-      class="mx-3 mb-3"
-      closable
-      @click:close="clearEmployeeFilter"
-    >
-      Сотрудник: {{ selectedEmployee.title }}
-    </v-chip>
-
-    <v-table class="employee-stats-table elevation-1">
-      <thead>
-        <tr>
-          <th rowspan="2" class="text-start">Сотрудник</th>
-          <th colspan="3" class="text-center">Кол-во компаний, закрепленных за сотрудником</th>
-          <th colspan="3" class="text-center">Кол-во сделок по закрепленным компаниям</th>
-          <th colspan="3" class="text-center">Кол-во компаний без сделок</th>
-        </tr>
-        <tr>
-          <th class="text-center">Предыдущий период</th>
-          <th class="text-center">Текущий период</th>
-          <th class="text-center">Динамика</th>
-          <th class="text-center">Предыдущий период</th>
-          <th class="text-center">Текущий период</th>
-          <th class="text-center">Динамика</th>
-          <th class="text-center">Предыдущий период</th>
-          <th class="text-center">Текущий период</th>
-          <th class="text-center">Динамика</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="item in filteredItems"
-          :key="item.userId"
-          :class="{ 'total-row': item.userId === 'total' }"
-        >
-          <td>{{ item.userName }}</td>
-
-          <!-- Компании -->
-          <td class="text-center">{{ item.prevCompanyCount }}</td>
-          <td class="text-center">{{ item.companyCount }}</td>
-          <td class="text-center" :class="getDynamicClass(item.companyCountDiff)">
-            {{ formatDynamicValue(item.companyCountDiff) }}
-          </td>
-
-          <!-- Сделки -->
-          <td class="text-center">{{ item.prevDealCount }}</td>
-          <td class="text-center">{{ item.dealCount }}</td>
-          <td class="text-center" :class="getDynamicClass(item.dealCountDiff)">
-            {{ formatDynamicValue(item.dealCountDiff) }}
-          </td>
-
-          <!-- Компании без сделок -->
-          <td class="text-center">{{ item.prevCompaniesWithoutDeals }}</td>
-          <td class="text-center">{{ item.companiesWithoutDeals }}</td>
-          <td class="text-center" :class="getDynamicClass(item.companiesWithoutDealsDiff, true)">
-            {{ formatDynamicValue(item.companiesWithoutDealsDiff) }}
-          </td>
-        </tr>
-        <tr v-if="filteredItems.length === 0 && !loading">
-          <td colspan="10" class="text-center pa-5">Нет данных для отображения</td>
-        </tr>
-        <tr v-if="loading">
-          <td colspan="10" class="text-center pa-5">
-            <v-progress-circular indeterminate color="primary"></v-progress-circular>
-            Загрузка данных...
-          </td>
-        </tr>
-      </tbody>
-      <tfoot v-if="showTotalRow && totalRow">
-        <tr class="total-row">
-          <td>ИТОГО</td>
-          <td class="text-center">{{ totalRow?.prevCompanyCount }}</td>
-          <td class="text-center">{{ totalRow?.companyCount }}</td>
-          <td class="text-center" :class="getDynamicClass(totalRow?.companyCountDiff || 0)">
-            {{ formatDynamicValue(totalRow?.companyCountDiff || 0) }}
-          </td>
-          <td class="text-center">{{ totalRow?.prevDealCount }}</td>
-          <td class="text-center">{{ totalRow?.dealCount }}</td>
-          <td class="text-center" :class="getDynamicClass(totalRow?.dealCountDiff || 0)">
-            {{ formatDynamicValue(totalRow?.dealCountDiff || 0) }}
-          </td>
-          <td class="text-center">{{ totalRow?.prevCompaniesWithoutDeals }}</td>
-          <td class="text-center">{{ totalRow?.companiesWithoutDeals }}</td>
-          <td
-            class="text-center"
-            :class="getDynamicClass(totalRow?.companiesWithoutDealsDiff || 0, true)"
+    <div class="table-responsive">
+      <v-table class="employee-stats-table elevation-1">
+        <thead>
+          <tr>
+            <th rowspan="2" class="text-start employee-column">Сотрудник</th>
+            <th colspan="3" class="text-center">Кол-во компаний, закрепленных за сотрудником</th>
+            <th colspan="3" class="text-center">Кол-во сделок по закрепленным компаниям</th>
+            <th colspan="3" class="text-center">Кол-во компаний без сделок</th>
+          </tr>
+          <tr>
+            <th class="text-center period-column">Пред. период</th>
+            <th class="text-center period-column">Текущий период</th>
+            <th class="text-center period-column">Динамика</th>
+            <th class="text-center period-column">Пред. период</th>
+            <th class="text-center period-column">Текущий период</th>
+            <th class="text-center period-column">Динамика</th>
+            <th class="text-center period-column">Пред. период</th>
+            <th class="text-center period-column">Текущий период</th>
+            <th class="text-center period-column">Динамика</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in filteredItems"
+            :key="item.userId"
+            :class="{ 'total-row': item.userId === 'total' }"
           >
-            {{ formatDynamicValue(totalRow?.companiesWithoutDealsDiff || 0) }}
-          </td>
-        </tr>
-      </tfoot>
-    </v-table>
+            <td class="employee-column">{{ item.userName }}</td>
+
+            <!-- Компании -->
+            <td class="text-center">{{ item.prevCompanyCount }}</td>
+            <td class="text-center">{{ item.companyCount }}</td>
+            <td class="text-center" :class="getDynamicClass(item.companyCountDiff)">
+              {{ formatDynamicValue(item.companyCountDiff) }}
+            </td>
+
+            <!-- Сделки -->
+            <td class="text-center">{{ item.prevDealCount }}</td>
+            <td class="text-center">{{ item.dealCount }}</td>
+            <td class="text-center" :class="getDynamicClass(item.dealCountDiff)">
+              {{ formatDynamicValue(item.dealCountDiff) }}
+            </td>
+
+            <!-- Компании без сделок -->
+            <td class="text-center">{{ item.prevCompaniesWithoutDeals }}</td>
+            <td class="text-center">{{ item.companiesWithoutDeals }}</td>
+            <td class="text-center" :class="getDynamicClass(item.companiesWithoutDealsDiff, true)">
+              {{ formatDynamicValue(item.companiesWithoutDealsDiff) }}
+            </td>
+          </tr>
+          <tr v-if="filteredItems.length === 0 && !loading">
+            <td colspan="10" class="text-center pa-5">Нет данных для отображения</td>
+          </tr>
+          <tr v-if="loading">
+            <td colspan="10" class="text-center pa-5">
+              <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              Загрузка данных...
+            </td>
+          </tr>
+        </tbody>
+        <tfoot v-if="showTotalRow && totalRow">
+          <tr class="total-row">
+            <td class="employee-column">ИТОГО</td>
+            <td class="text-center">{{ totalRow?.prevCompanyCount }}</td>
+            <td class="text-center">{{ totalRow?.companyCount }}</td>
+            <td class="text-center" :class="getDynamicClass(totalRow?.companyCountDiff || 0)">
+              {{ formatDynamicValue(totalRow?.companyCountDiff || 0) }}
+            </td>
+            <td class="text-center">{{ totalRow?.prevDealCount }}</td>
+            <td class="text-center">{{ totalRow?.dealCount }}</td>
+            <td class="text-center" :class="getDynamicClass(totalRow?.dealCountDiff || 0)">
+              {{ formatDynamicValue(totalRow?.dealCountDiff || 0) }}
+            </td>
+            <td class="text-center">{{ totalRow?.prevCompaniesWithoutDeals }}</td>
+            <td class="text-center">{{ totalRow?.companiesWithoutDeals }}</td>
+            <td
+              class="text-center"
+              :class="getDynamicClass(totalRow?.companiesWithoutDealsDiff || 0, true)"
+            >
+              {{ formatDynamicValue(totalRow?.companiesWithoutDealsDiff || 0) }}
+            </td>
+          </tr>
+        </tfoot>
+      </v-table>
+    </div>
 
     <div class="d-flex justify-end mt-3">
       <v-btn
@@ -160,7 +163,7 @@ interface EmployeeStatsItem {
 const store = useEmployeeStatsStore()
 
 // Реактивные свойства
-const selectedEmployee = ref<EmployeeItem | null>(null)
+const selectedEmployees = ref<EmployeeItem[]>([])
 
 // Вычисляемые свойства
 const loading = computed(() => store.loading)
@@ -229,22 +232,27 @@ const showTotalRow = computed(() => {
 
 // Фильтрованные данные таблицы
 const filteredItems = computed(() => {
-  if (!selectedEmployee.value) {
+  if (selectedEmployees.value.length === 0) {
     return tableItems.value
   }
 
-  // Фильтрация по выбранному сотруднику
-  return tableItems.value.filter((employee) => employee.userId === selectedEmployee.value?.value)
+  // Фильтрация по выбранным сотрудникам
+  const selectedIds = selectedEmployees.value.map((employee) => employee.value)
+  return tableItems.value.filter((employee) => selectedIds.includes(employee.userId))
 })
 
 // Функции
-function filterByEmployee() {
+function filterByEmployees() {
   // Фильтрация происходит автоматически через computed свойство
-  console.log('Выбран сотрудник:', selectedEmployee.value)
+  console.log('Выбраны сотрудники:', selectedEmployees.value)
+}
+
+function removeEmployee(employee: EmployeeItem) {
+  selectedEmployees.value = selectedEmployees.value.filter((item) => item.value !== employee.value)
 }
 
 function clearEmployeeFilter() {
-  selectedEmployee.value = null
+  selectedEmployees.value = []
 }
 
 function exportToExcel() {
@@ -279,28 +287,43 @@ function getDynamicClass(value: number, inverse: boolean = false): string {
 watch(
   () => store.stats.length,
   () => {
-    if (
-      selectedEmployee.value &&
-      !store.stats.some((emp) => emp.userId === selectedEmployee.value?.value)
-    ) {
-      selectedEmployee.value = null
+    if (selectedEmployees.value.length > 0) {
+      // Проверяем каждого выбранного сотрудника и удаляем тех, кого больше нет в списке
+      selectedEmployees.value = selectedEmployees.value.filter((selected) =>
+        store.stats.some((emp) => emp.userId === selected.value),
+      )
     }
   },
 )
 </script>
 
 <style scoped>
+.table-responsive {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 .employee-stats-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+  table-layout: fixed;
 }
 
 .employee-stats-table th,
 .employee-stats-table td {
   padding: 8px;
-  white-space: nowrap;
   border: 1px solid rgba(0, 0, 0, 0.12);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.employee-column {
+  width: 15%;
+}
+
+.period-column {
+  width: 9.44%; /* (100% - 15%) / 9 */
 }
 
 .employee-stats-table thead th {
