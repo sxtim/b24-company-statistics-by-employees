@@ -14,7 +14,7 @@ export default defineConfig({
     },
   },
   // База для GitHub Pages
-  base: process.env.NODE_ENV === 'production' ? '/b-employee-statistics/' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/company-statistics-by-employees/' : '/',
   // Настройки сборки
   build: {
     // Выходная директория для GitHub Pages

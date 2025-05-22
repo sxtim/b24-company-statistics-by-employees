@@ -61,6 +61,7 @@ async function testBitrixConnection() {
 export default testBitrixConnection
 
 // Если файл запущен напрямую (не импортирован), выполняем тест
-if (typeof require !== 'undefined' && require.main === module) {
-  testBitrixConnection()
-}
+// Закомментировано для сборки на GitHub Pages
+// if (typeof require !== 'undefined' && require.main === module) {
+//   testBitrixConnection()
+// }
