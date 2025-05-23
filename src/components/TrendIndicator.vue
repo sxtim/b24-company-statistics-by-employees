@@ -20,16 +20,12 @@ const props = withDefaults(defineProps<Props>(), {
   inverse: false,
 })
 
-// Определяем иконку в зависимости от значения и флага inverse
 const indicatorIcon = computed(() => {
-  // Если inverse=true, то положительная динамика отрицательна (и наоборот)
-  // Например, рост числа компаний без сделок - отрицательная тенденция
   const isPositive = props.inverse ? props.value < 0 : props.value > 0
 
   return isPositive ? 'mdi-arrow-up' : 'mdi-arrow-down'
 })
 
-// Определяем цвет в зависимости от значения и флага inverse
 const indicatorColor = computed(() => {
   const isPositive = props.inverse ? props.value < 0 : props.value > 0
 

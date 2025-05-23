@@ -1,7 +1,6 @@
 import type { AxiosInstance } from 'axios'
 import axios from 'axios'
 
-// Типы данных для работы с API
 export interface IBitrixUser {
   ID: string
   NAME: string
@@ -36,7 +35,7 @@ export interface IEmployeeStats {
   companyCount: number
   dealCount: number
   companiesWithoutDeals: number
-  companyCountDiff: number // Динамика к предыдущему периоду
+  companyCountDiff: number
   dealCountDiff: number
   companiesWithoutDealsDiff: number
 }
@@ -55,7 +54,6 @@ class Bitrix24Api {
     })
   }
 
-  // Получение списка сотрудников
   async getEmployees(): Promise<IBitrixUser[]> {
     try {
       console.log('Отправка запроса user.get на URL:', this.webhook + 'user.get')
@@ -68,10 +66,8 @@ class Bitrix24Api {
     }
   }
 
-  // Получение компаний за период
   async getCompanies(period: IStatPeriod): Promise<IBitrixCompany[]> {
     try {
-      // Указываем фильтр по дате создания компаний
       const filter = {
         '>=DATE_CREATE': this.formatDate(period.start),
         '<=DATE_CREATE': this.formatDate(period.end),
@@ -88,10 +84,8 @@ class Bitrix24Api {
     }
   }
 
-  // Получение сделок за период
   async getDeals(period: IStatPeriod): Promise<IBitrixDeal[]> {
     try {
-      // Указываем фильтр по дате создания сделок
       const filter = {
         '>=DATE_CREATE': this.formatDate(period.start),
         '<=DATE_CREATE': this.formatDate(period.end),
@@ -108,13 +102,11 @@ class Bitrix24Api {
     }
   }
 
-  // Получение статистики сотрудников
   async getEmployeeStatistics(
     currentPeriod: IStatPeriod,
     prevPeriod?: IStatPeriod,
   ): Promise<IEmployeeStats[]> {
     try {
-      // 1. Получаем сотрудников
       const employees = await this.getEmployees()
       console.log('Получен список сотрудников:', employees)
 
@@ -122,15 +114,12 @@ class Bitrix24Api {
         console.warn('Внимание: Получен пустой список сотрудников!')
       }
 
-      // 2. Получаем компании за текущий период
       const currentCompanies = await this.getCompanies(currentPeriod)
       console.log('Получен список компаний:', currentCompanies)
 
-      // 3. Получаем сделки за текущий период
       const currentDeals = await this.getDeals(currentPeriod)
       console.log('Получен список сделок:', currentDeals)
 
-      // Для расчета динамики получаем данные за предыдущий период
       let prevCompanies: IBitrixCompany[] = []
       let prevDeals: IBitrixDeal[] = []
 
@@ -139,27 +128,21 @@ class Bitrix24Api {
         prevDeals = await this.getDeals(prevPeriod)
       }
 
-      // Рассчитываем статистику для каждого сотрудника
       const stats = employees.map((employee) => {
-        // Текущий период
         const employeeCompanies = currentCompanies.filter(
           (company) => company.ASSIGNED_BY_ID === employee.ID,
         )
 
-        // Список ID компаний сотрудника
         const employeeCompanyIds = employeeCompanies.map((company) => company.ID)
 
-        // Сделки по компаниям сотрудника
         const companyDeals = currentDeals.filter((deal) =>
           employeeCompanyIds.includes(deal.COMPANY_ID),
         )
 
-        // Компании без сделок
         const companiesWithoutDeals = employeeCompanies.filter(
           (company) => !currentDeals.some((deal) => deal.COMPANY_ID === company.ID),
         )
 
-        // Предыдущий период (для динамики)
         const prevEmployeeCompanies = prevPeriod
           ? prevCompanies.filter((company) => company.ASSIGNED_BY_ID === employee.ID)
           : []
@@ -176,7 +159,6 @@ class Bitrix24Api {
             )
           : []
 
-        // Формируем статистику
         return {
           userId: employee.ID,
           userName: this.getEmployeeName(employee),
@@ -200,7 +182,6 @@ class Bitrix24Api {
     }
   }
 
-  // Вспомогательная функция для форматирования даты в формате Bitrix24
   private formatDate(date: Date): string {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -208,27 +189,22 @@ class Bitrix24Api {
     return `${year}-${month}-${day}`
   }
 
-  // Вспомогательная функция для получения имени сотрудника
   private getEmployeeName(employee: IBitrixUser): string {
     const lastName = employee.LAST_NAME || ''
     const firstName = employee.NAME || ''
 
-    // Если есть и фамилия и имя
     if (lastName && firstName) {
       return `${lastName} ${firstName}`
     }
 
-    // Если есть только фамилия или только имя
     if (lastName || firstName) {
       return lastName || firstName
     }
 
-    // Если есть email, используем его
     if (employee.EMAIL) {
       return employee.EMAIL
     }
 
-    // В крайнем случае показываем ID
     return `Сотрудник ID:${employee.ID}`
   }
 }

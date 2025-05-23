@@ -3,22 +3,18 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 export const useEmployeeStatsStore = defineStore('employeeStats', () => {
-  // Состояние
   const stats = ref<IEmployeeStats[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const currentPeriod = ref<IStatPeriod>({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Первый день текущего месяца
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     end: new Date(),
   })
   const previousPeriod = ref<IStatPeriod | null>(null)
-  const bitrixWebhook = ref<string>('')
 
-  // Геттеры
   const totalStats = computed(() => {
     if (!stats.value.length) return null
 
-    // Суммируем значения по всем сотрудникам
     return stats.value.reduce(
       (total, employee) => {
         return {
@@ -42,20 +38,13 @@ export const useEmployeeStatsStore = defineStore('employeeStats', () => {
     )
   })
 
-  // Действия
   async function fetchEmployeeStats() {
-    if (!bitrixWebhook.value) {
-      error.value = 'Webhook Bitrix24 не настроен'
-      return
-    }
-
     loading.value = true
     error.value = null
 
     try {
-      const api = new Bitrix24Api(bitrixWebhook.value)
+      const api = new Bitrix24Api('https://b24-o2r3b5.bitrix24.ru/rest/1/izgq0xiwpc2x7ogj/')
 
-      // Если установлен предыдущий период, то вычисляем динамику
       stats.value = await api.getEmployeeStatistics(
         currentPeriod.value,
         previousPeriod.value || undefined,
@@ -68,17 +57,12 @@ export const useEmployeeStatsStore = defineStore('employeeStats', () => {
     }
   }
 
-  function setWebhook(webhook: string) {
-    bitrixWebhook.value = webhook
-  }
-
   function setPeriod(period: IStatPeriod, shouldCalcPrevPeriod: boolean = true) {
     currentPeriod.value = period
 
     if (shouldCalcPrevPeriod) {
-      // Рассчитываем предыдущий период такой же длительности
       const duration = period.end.getTime() - period.start.getTime()
-      const prevEnd = new Date(period.start.getTime() - 1) // день до начала текущего периода
+      const prevEnd = new Date(period.start.getTime() - 1)
       const prevStart = new Date(prevEnd.getTime() - duration)
 
       previousPeriod.value = {
@@ -96,10 +80,8 @@ export const useEmployeeStatsStore = defineStore('employeeStats', () => {
     error,
     currentPeriod,
     previousPeriod,
-    bitrixWebhook,
     totalStats,
     fetchEmployeeStats,
-    setWebhook,
     setPeriod,
   }
 })

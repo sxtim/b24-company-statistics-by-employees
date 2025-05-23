@@ -77,7 +77,6 @@ import { onMounted, ref } from 'vue'
 
 const store = useEmployeeStatsStore()
 
-// Реактивные свойства
 const periodType = ref('month')
 const selectedMonth = ref(new Date().getMonth() + 1)
 const selectedYear = ref(new Date().getFullYear())
@@ -86,13 +85,11 @@ const endDate = ref(format(new Date(), 'yyyy-MM-dd'))
 const compareToPrevious = ref(true)
 const loading = ref(false)
 
-// Периоды
 const periodTypes = [
   { text: 'Месяц', value: 'month' },
   { text: 'Произвольный период', value: 'custom' },
 ]
 
-// Генерация месяцев
 const months = [
   { title: 'Январь', value: 1 },
   { title: 'Февраль', value: 2 },
@@ -108,14 +105,11 @@ const months = [
   { title: 'Декабрь', value: 12 },
 ]
 
-// Генерация лет
 const currentYear = new Date().getFullYear()
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
-// Функции
 function updatePeriodType() {
   if (periodType.value === 'month') {
-    // Устанавливаем текущий месяц по умолчанию
     const now = new Date()
     selectedMonth.value = now.getMonth() + 1
     selectedYear.value = now.getFullYear()
@@ -143,10 +137,8 @@ async function applyFilter() {
       end: parse(endDate.value, 'yyyy-MM-dd', new Date()),
     }
 
-    // Устанавливаем период в хранилище и определяем, нужно ли сравнивать с предыдущим
     store.setPeriod(period, compareToPrevious.value)
 
-    // Загружаем статистику
     await store.fetchEmployeeStats()
   } catch (error) {
     console.error('Ошибка при применении фильтра периода:', error)
@@ -155,7 +147,6 @@ async function applyFilter() {
   }
 }
 
-// Инициализация
 onMounted(() => {
   updatePeriod()
 })
